@@ -30,6 +30,7 @@ public class RawInputListener : IDisposable
     private IntPtr _hwnd;
     private readonly Action<InputEvent> _onEvent;
     private NativeMethods.WndProc? _wndProcDelegate; // prevent GC
+    private readonly HashSet<ushort> _keysCurrentlyDown = new(); // track held keys to filter repeats
 
     // Filter keys
     private readonly HashSet<ushort> _monitoredVKeys = new()
@@ -179,17 +180,27 @@ public class RawInputListener : IDisposable
 
     private void ProcessKeyboard(NativeMethods.RAWKEYBOARD kb, long qpc, double ms)
     {
-        // Filter out key repeats if desired (not strictly necessary for raw input as flags handles it, but good to check)
         // RI_KEY_BREAK = 1 (Up), RI_KEY_MAKE = 0 (Down)
         bool isUp = (kb.Flags & 1) == 1;
-        bool isE0 = (kb.Flags & 2) == 2;
         
         ushort vkey = kb.VKey;
-        if (vkey == 0) return; // Sometimes VKey is 0, use MakeCode if needed (omitted for MVP simplicity)
+        if (vkey == 0) return;
 
         if (!_monitoredVKeys.Contains(vkey)) return;
 
-        string keyName = ((Keys)vkey).ToString(); // Simple casting for MVP
+        // Filter key repeats: ignore down events for keys already held
+        if (!isUp)
+        {
+            if (_keysCurrentlyDown.Contains(vkey))
+                return; // already down, this is a repeat - ignore
+            _keysCurrentlyDown.Add(vkey);
+        }
+        else
+        {
+            _keysCurrentlyDown.Remove(vkey);
+        }
+
+        string keyName = ((Keys)vkey).ToString();
         
         _onEvent(new InputEvent(
             qpc,
