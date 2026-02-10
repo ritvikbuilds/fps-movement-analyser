@@ -214,6 +214,13 @@ public partial class MainWindow : Window
 
     private void ProcessPendingEvents()
     {
+        // When paused, discard all incoming events
+        if (_isPaused)
+        {
+            while (_pendingEvents.TryDequeue(out _)) { }
+            return;
+        }
+        
         while (_pendingEvents.TryDequeue(out var evt))
         {
             _eventBuffer.Add(evt);
