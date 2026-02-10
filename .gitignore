@@ -1,0 +1,15 @@
+bin/
+obj/
+.vs/
+*.user
+*.csv
+*.log
+
+# Build output
+publish/
+*.exe
+
+# IDE
+.idea/
+*.suo
+*.sln.docstates

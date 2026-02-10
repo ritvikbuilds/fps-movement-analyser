@@ -1,0 +1,32 @@
+schema: spec-driven
+
+context: |
+  Project: NoteD — FPS Input Training & Analysis Tool
+  
+  Purpose: Help FPS players monitor and analyze their input movements
+  (keyboard presses, mouse clicks/movement) to improve mechanics like
+  counterstrafing and deadzoning.
+  
+  Tech stack: TBD (will be decided during the first OpenSpec change).
+  
+  Conventions:
+  - Use OpenSpec for all feature planning before implementation
+  - Keep systems modular (input capture, analysis, visualization, data storage)
+  - Markdown for documentation, YAML for configuration
+  - Descriptive filenames in kebab-case
+
+rules:
+  proposal:
+    - Clearly state which system(s) are affected (input, analysis, UI, etc.)
+    - Include a "Non-goals" section to keep scope tight
+  specs:
+    - Use Given/When/Then format for user interaction scenarios
+    - Reference existing system specs when adding cross-cutting features
+  design:
+    - Document performance considerations for real-time input capture
+    - Consider latency impact on input monitoring accuracy
+  tasks:
+    - Break into chunks that can be tested independently
+    - Prioritize core input capture before analysis features
+
+
