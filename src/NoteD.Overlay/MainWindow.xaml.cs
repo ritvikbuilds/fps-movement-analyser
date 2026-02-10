@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
-using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -111,7 +110,7 @@ public partial class MainWindow : Window
             string logDir = string.IsNullOrEmpty(_settings.OutputDirectory) 
                 ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
                 : _settings.OutputDirectory;
-            string logFile = Path.Combine(logDir, $"noted_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.csv");
+            string logFile = System.IO.Path.Combine(logDir, $"noted_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.csv");
             _csvLogger = new CsvEventLogger(logFile);
             _isLogging = true;
             StatusText.Text = " - Recording";
