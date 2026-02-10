@@ -150,4 +150,10 @@
 ### 6.5 Behavior Changes
 - [x] Pause (Tab) now stops capture entirely (events discarded)
 
+## Future Improvements
+
+### 7.1 UX Enhancements
+- [ ] Add system tray icon (right-click to show/exit when overlay is hidden)
+- [ ] Consider minimize vs hide behavior for F7 (currently hidden window has no visual indicator)
+
 
