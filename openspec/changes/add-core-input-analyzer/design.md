@@ -157,7 +157,10 @@ timestamp_qpc,timestamp_ms,device,key,event_type,deadzone_delta_ms,counter_delta
   },
   "hotkeys": {
     "toggleLogging": "F9",
-    "openSettings": "F8"
+    "openSettings": "F8",
+    "toggleOverlay": "F7",
+    "toggleClickThrough": "F6",
+    "togglePauseVisual": "Tab"
   },
   "outputDirectory": "%USERPROFILE%/Documents/NoteD"
 }
@@ -182,8 +185,26 @@ timestamp_qpc,timestamp_ms,device,key,event_type,deadzone_delta_ms,counter_delta
 ### API Whitelist (for anti-cheat documentation):
 ```
 kernel32.dll: QueryPerformanceCounter, QueryPerformanceFrequency
-user32.dll: RegisterRawInputDevices, GetRawInputData, SetWindowLong, GetWindowLong
+user32.dll: RegisterRawInputDevices, GetRawInputData, SetWindowLong, GetWindowLong, RegisterHotKey
 (Standard WPF/CLR APIs for window management)
 ```
+
+## Rendering Approach
+
+**Decision**: Use `CompositionTarget.Rendering` instead of DispatcherTimer.
+
+**Rationale**:
+- Syncs to display refresh rate (60Hz, 144Hz, etc.)
+- Smoother animations
+- No timer drift or jank
+
+## Pause Behavior
+
+**Decision**: When paused (Tab), stop capturing entirely.
+
+**Rationale**:
+- User wants to review a specific moment
+- Incoming events during pause are discarded
+- Resume shows the frozen state, not a jump to "now"
 
 

@@ -92,8 +92,9 @@
 - [x] Implement global hotkey registration
 - [x] Add logging toggle hotkey (F9)
 - [x] Add settings window hotkey (F8)
-- [x] Add overlay toggle hotkey
-- [x] Add pause visual hotkey (Tab) - freezes timeline while capture continues
+- [x] Add overlay toggle hotkey (F7)
+- [x] Add click-through toggle hotkey (F6)
+- [x] Add pause visual hotkey (Tab) - freezes timeline and stops capture
 
 ## Phase 5: Polish & Documentation
 
@@ -118,9 +119,35 @@
 - [ ] Generate performance report (CPU/memory)
 
 ### 5.4 Release
-- [ ] Create release build configuration
-- [ ] Build self-contained executable
+- [x] Create release build configuration
+- [x] Build self-contained executable (build.ps1 creates publish/)
 - [ ] Create simple installer or portable ZIP
 - [x] Add MIT license file
+
+## Bug Fixes & Improvements (Post-Implementation)
+
+### 6.1 Build Fixes
+- [x] Fix System.IO.Path ambiguity with System.Windows.Shapes.Path
+- [x] Add missing using statements
+
+### 6.2 Runtime Fixes
+- [x] Fix window creation crash (WndProc delegate GC, CharSet on P/Invoke)
+- [x] Fix key repeat flooding (filter repeated key-down events)
+
+### 6.3 UI Improvements
+- [x] Separate A and D lanes (not overlapping)
+- [x] Click dots appear on active key's bar
+- [x] Timestamp calculated from key DOWN time (counterstrafe timing)
+- [x] Only show timestamp when click during key press
+- [x] Added legend row (A Key, D Key, Click)
+- [x] Added time axis at bottom (0s, 1s, 2s...)
+- [x] White click dots with subtle border
+
+### 6.4 Performance
+- [x] Switch to CompositionTarget.Rendering for vsync'd rendering
+- [x] Achieves 60-144 FPS depending on monitor refresh rate
+
+### 6.5 Behavior Changes
+- [x] Pause (Tab) now stops capture entirely (events discarded)
 
 
