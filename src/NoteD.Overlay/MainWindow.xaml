@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="NoteD - FPS Input Analyzer"
-        Width="500" Height="180"
+        Width="600" Height="220"
         WindowStyle="None"
         AllowsTransparency="True"
         ResizeMode="CanResizeWithGrip"
@@ -26,7 +26,9 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="28"/>
+            <RowDefinition Height="24"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="20"/>
             <RowDefinition Height="24"/>
         </Grid.RowDefinitions>
         
@@ -69,43 +71,52 @@
             </Grid>
         </Border>
         
+        <!-- Legend Row -->
+        <Border Grid.Row="1" Background="{StaticResource BackgroundBrush}">
+            <StackPanel Orientation="Horizontal" Margin="10,0" VerticalAlignment="Center">
+                <Rectangle Width="20" Height="10" Fill="{StaticResource AKeyBrush}" RadiusX="2" RadiusY="2" Margin="0,0,5,0"/>
+                <TextBlock Text="A Key" Foreground="{StaticResource TextBrush}" FontSize="10" Margin="0,0,15,0" VerticalAlignment="Center"/>
+                <Rectangle Width="20" Height="10" Fill="{StaticResource DKeyBrush}" RadiusX="2" RadiusY="2" Margin="0,0,5,0"/>
+                <TextBlock Text="D Key" Foreground="{StaticResource TextBrush}" FontSize="10" Margin="0,0,15,0" VerticalAlignment="Center"/>
+                <Ellipse Width="10" Height="10" Fill="{StaticResource ClickBrush}" Margin="0,0,5,0"/>
+                <TextBlock Text="Click" Foreground="{StaticResource TextBrush}" FontSize="10" VerticalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+        
         <!-- Timeline Area -->
-        <Grid Grid.Row="1" Margin="5">
+        <Grid Grid.Row="2" Margin="5,0">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="35"/>
+                <ColumnDefinition Width="25"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
                 <RowDefinition Height="*"/>
+                <RowDefinition Height="8"/>
                 <RowDefinition Height="*"/>
-                <RowDefinition Height="28"/>
             </Grid.RowDefinitions>
             
             <!-- Key Labels -->
-            <Border Grid.Row="0" Grid.Column="0" Background="{StaticResource PanelBrush}" Margin="0,2" CornerRadius="3">
-                <TextBlock Text="A" Style="{StaticResource KeyLabelStyle}" Foreground="{StaticResource AKeyBrush}"/>
-            </Border>
-            <Border Grid.Row="1" Grid.Column="0" Background="{StaticResource PanelBrush}" Margin="0,2" CornerRadius="3">
-                <TextBlock Text="D" Style="{StaticResource KeyLabelStyle}" Foreground="{StaticResource DKeyBrush}"/>
-            </Border>
+            <TextBlock Grid.Row="0" Grid.Column="0" Text="A" Style="{StaticResource KeyLabelStyle}" Foreground="{StaticResource AKeyBrush}"/>
+            <TextBlock Grid.Row="2" Grid.Column="0" Text="D" Style="{StaticResource KeyLabelStyle}" Foreground="{StaticResource DKeyBrush}"/>
             
-            <!-- Timeline Canvas -->
-            <Canvas x:Name="TimelineCanvas" 
-                    Grid.Row="0" Grid.RowSpan="2" Grid.Column="1" 
+            <!-- A Lane Canvas -->
+            <Canvas x:Name="ALaneCanvas" 
+                    Grid.Row="0" Grid.Column="1" 
                     Background="{StaticResource PanelBrush}"
-                    ClipToBounds="True"
-                    Margin="5,2"/>
+                    ClipToBounds="True"/>
             
-            <!-- Click Lane (for delta labels) -->
-            <Canvas x:Name="ClickCanvas"
-                    Grid.Row="2" Grid.Column="1"
+            <!-- D Lane Canvas -->
+            <Canvas x:Name="DLaneCanvas" 
+                    Grid.Row="2" Grid.Column="1" 
                     Background="{StaticResource PanelBrush}"
-                    ClipToBounds="True"
-                    Margin="5,2"/>
+                    ClipToBounds="True"/>
         </Grid>
         
+        <!-- Time Axis -->
+        <Canvas x:Name="TimeAxisCanvas" Grid.Row="3" Margin="30,0,5,0" ClipToBounds="True"/>
+        
         <!-- Status Bar -->
-        <Border Grid.Row="2" Background="{StaticResource PanelBrush}">
+        <Border Grid.Row="4" Background="{StaticResource PanelBrush}">
             <Grid Margin="10,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
