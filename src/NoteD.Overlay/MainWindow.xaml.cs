@@ -28,7 +28,6 @@ public partial class MainWindow : Window
     private readonly DeltaCalculator _deltaCalculator;
     private readonly ConcurrentQueue<InputEvent> _pendingEvents = new();
     
-    private readonly DispatcherTimer _renderTimer;
     private readonly Stopwatch _fpsStopwatch = new();
     private int _frameCount;
     private double _currentFps;
@@ -37,7 +36,6 @@ public partial class MainWindow : Window
     private readonly Dictionary<string, double> _keyDownTimes = new();
     
     private const double TimelineSeconds = 3.0;
-    private const double PixelsPerSecond = 140.0;
     
     private DeltaResult? _lastClickDelta;
     private double _lastClickTime;
@@ -49,6 +47,7 @@ public partial class MainWindow : Window
     private bool _isLogging;
     private bool _isPaused;
     private double _pausedAtMs;
+    private bool _renderingEnabled = true;
 
     public MainWindow()
     {
@@ -56,12 +55,6 @@ public partial class MainWindow : Window
         
         _settings = AppSettings.Load();
         _deltaCalculator = new DeltaCalculator(_eventBuffer, lookupWindowMs: _settings.LookupWindowMs);
-        
-        _renderTimer = new DispatcherTimer(DispatcherPriority.Render)
-        {
-            Interval = TimeSpan.FromMilliseconds(16.67) // ~60 FPS
-        };
-        _renderTimer.Tick += RenderTimer_Tick;
     }
 
     private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -69,7 +62,15 @@ public partial class MainWindow : Window
         StartInputCapture();
         RegisterHotkeys();
         _fpsStopwatch.Start();
-        _renderTimer.Start();
+        CompositionTarget.Rendering += OnRendering;
+    }
+    
+    private void OnRendering(object? sender, EventArgs e)
+    {
+        if (!_renderingEnabled) return;
+        ProcessPendingEvents();
+        UpdateFps();
+        RenderTimeline();
     }
 
     private void RegisterHotkeys()
@@ -167,7 +168,8 @@ public partial class MainWindow : Window
 
     private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
     {
-        _renderTimer.Stop();
+        _renderingEnabled = false;
+        CompositionTarget.Rendering -= OnRendering;
         _inputListener?.Dispose();
         _globalHotkey?.Dispose();
         _csvLogger?.Dispose();
@@ -208,13 +210,6 @@ public partial class MainWindow : Window
     private void OnInputEvent(InputEvent evt)
     {
         _pendingEvents.Enqueue(evt);
-    }
-
-    private void RenderTimer_Tick(object? sender, EventArgs e)
-    {
-        ProcessPendingEvents();
-        UpdateFps();
-        RenderTimeline();
     }
 
     private void ProcessPendingEvents()
@@ -454,28 +449,17 @@ public partial class MainWindow : Window
 
     private void DrawClickOnLane(Canvas canvas, double x, double height, Brush brush, double clickTime, double? keyDownTime)
     {
-        // Draw vertical line
-        var line = new Line
-        {
-            X1 = x, Y1 = 0,
-            X2 = x, Y2 = height,
-            Stroke = brush,
-            StrokeThickness = 2,
-            Opacity = 0.7
-        };
-        canvas.Children.Add(line);
-        
-        // Draw dot
+        // Draw dot - white fill with subtle dark border
         var dot = new Ellipse
         {
-            Width = 12,
-            Height = 12,
+            Width = 10,
+            Height = 10,
             Fill = Brushes.White,
-            Stroke = brush,
-            StrokeThickness = 2
+            Stroke = new SolidColorBrush(Color.FromRgb(60, 60, 80)),
+            StrokeThickness = 1
         };
-        Canvas.SetLeft(dot, x - 6);
-        Canvas.SetTop(dot, height / 2 - 6);
+        Canvas.SetLeft(dot, x - 5);
+        Canvas.SetTop(dot, height / 2 - 5);
         canvas.Children.Add(dot);
         
         // Draw timestamp label (time from key down)
@@ -486,16 +470,16 @@ public partial class MainWindow : Window
             
             var label = new Border
             {
-                Background = new SolidColorBrush(Color.FromArgb(230, 40, 40, 60)),
+                Background = new SolidColorBrush(Color.FromArgb(220, 30, 30, 45)),
                 CornerRadius = new CornerRadius(3),
-                Padding = new Thickness(4, 2, 4, 2),
+                Padding = new Thickness(5, 2, 5, 2),
                 Child = new TextBlock
                 {
                     Text = labelText,
                     Foreground = Brushes.White,
                     FontSize = 11,
                     FontFamily = new FontFamily("Segoe UI"),
-                    FontWeight = FontWeights.SemiBold
+                    FontWeight = FontWeights.Medium
                 }
             };
             
