@@ -78,10 +78,7 @@ public partial class MainWindow : Window
         var hwnd = new WindowInteropHelper(this).Handle;
         _globalHotkey = new GlobalHotkey(hwnd);
         
-        _globalHotkey.Register(_settings.Hotkeys.ToggleLogging, ToggleLogging);
-        _globalHotkey.Register(_settings.Hotkeys.OpenSettings, OpenSettingsWindow);
-        _globalHotkey.Register(_settings.Hotkeys.ToggleOverlay, ToggleOverlayVisibility);
-        _globalHotkey.Register(_settings.Hotkeys.ToggleClickThrough, () => SetClickThrough(!_isClickThrough));
+        // Only Tab for pause - keeping it simple
         _globalHotkey.Register(_settings.Hotkeys.TogglePauseVisual, TogglePauseVisual);
         
         var source = HwndSource.FromHwnd(hwnd);
