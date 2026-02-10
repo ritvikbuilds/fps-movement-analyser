@@ -29,6 +29,7 @@ public class RawInputListener : IDisposable
     private volatile bool _isRunning;
     private IntPtr _hwnd;
     private readonly Action<InputEvent> _onEvent;
+    private NativeMethods.WndProc? _wndProcDelegate; // prevent GC
 
     // Filter keys
     private readonly HashSet<ushort> _monitoredVKeys = new()
@@ -73,16 +74,25 @@ public class RawInputListener : IDisposable
     private void MessageLoop()
     {
         // 1. Create Message-Only Window
-        string className = "NoteDRawInputClass";
+        string className = $"NoteDRawInputClass_{Environment.TickCount}";
+        
+        // Keep delegate alive to prevent GC
+        _wndProcDelegate = WndProc;
+        
         var wndClass = new NativeMethods.WNDCLASSEX
         {
             cbSize = Marshal.SizeOf<NativeMethods.WNDCLASSEX>(),
-            lpfnWndProc = Marshal.GetFunctionPointerForDelegate((NativeMethods.WndProc)WndProc),
+            lpfnWndProc = Marshal.GetFunctionPointerForDelegate(_wndProcDelegate),
             hInstance = NativeMethods.GetModuleHandle(null),
             lpszClassName = className
         };
 
-        NativeMethods.RegisterClassEx(ref wndClass);
+        ushort classAtom = NativeMethods.RegisterClassEx(ref wndClass);
+        if (classAtom == 0)
+        {
+            int error = Marshal.GetLastWin32Error();
+            throw new Win32Exception(error, $"Failed to register window class. Error: {error}");
+        }
 
         _hwnd = NativeMethods.CreateWindowEx(
             0, className, "NoteDRawInputWindow", 0, 0, 0, 0, 0,
@@ -91,7 +101,8 @@ public class RawInputListener : IDisposable
 
         if (_hwnd == IntPtr.Zero)
         {
-            throw new Win32Exception(Marshal.GetLastWin32Error(), "Failed to create message-only window");
+            int error = Marshal.GetLastWin32Error();
+            throw new Win32Exception(error, $"Failed to create message-only window. Error: {error}");
         }
 
         // 2. Register Raw Input

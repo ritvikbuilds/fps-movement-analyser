@@ -89,7 +89,7 @@ internal static class NativeMethods
     [DllImport("user32.dll", SetLastError = true)]
     public static extern IntPtr DefWindowProc(IntPtr hWnd, uint uMsg, IntPtr wParam, IntPtr lParam);
 
-    [DllImport("user32.dll", SetLastError = true)]
+    [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
     public static extern IntPtr CreateWindowEx(
         uint dwExStyle,
         string lpClassName,
@@ -116,7 +116,7 @@ internal static class NativeMethods
     [DllImport("user32.dll")]
     public static extern IntPtr DispatchMessage([In] ref MSG lpMsg);
 
-    [DllImport("user32.dll", SetLastError = true)]
+    [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
     public static extern ushort RegisterClassEx(ref WNDCLASSEX lpwc);
 
     [StructLayout(LayoutKind.Sequential)]
