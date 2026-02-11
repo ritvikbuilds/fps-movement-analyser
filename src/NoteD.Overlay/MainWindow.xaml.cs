@@ -1,13 +1,13 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
-using System.Windows.Shapes;
-using System.Windows.Threading;
+using System.Windows.Media.Imaging;
 using NoteD.Core;
 
 namespace NoteD.Overlay;
@@ -290,15 +290,16 @@ public partial class MainWindow : Window
 
     private void RenderTimeline()
     {
-        ALaneCanvas.Children.Clear();
-        DLaneCanvas.Children.Clear();
-        TimeAxisCanvas.Children.Clear();
+        var aParent = (FrameworkElement)ALaneImage.Parent;
+        var dParent = (FrameworkElement)DLaneImage.Parent;
+        var axisParent = (FrameworkElement)TimeAxisImage.Parent;
         
-        double aWidth = ALaneCanvas.ActualWidth;
-        double aHeight = ALaneCanvas.ActualHeight;
-        double dWidth = DLaneCanvas.ActualWidth;
-        double dHeight = DLaneCanvas.ActualHeight;
-        double axisWidth = TimeAxisCanvas.ActualWidth;
+        double aWidth = aParent.ActualWidth;
+        double aHeight = aParent.ActualHeight;
+        double dWidth = dParent.ActualWidth;
+        double dHeight = dParent.ActualHeight;
+        double axisWidth = axisParent.ActualWidth;
+        double axisHeight = axisParent.ActualHeight;
         
         if (aWidth <= 0 || aHeight <= 0) return;
         
@@ -310,16 +311,14 @@ public partial class MainWindow : Window
         
         var events = _eventBuffer.GetEventsInWindow(nowMs, TimelineSeconds * 1000);
         
-        // Build segments and track key down times for delta calculation
         var aSegments = new List<(double start, double end)>();
         var dSegments = new List<(double start, double end)>();
-        var keyDownTimes = new Dictionary<string, double>(); // track most recent key down time
+        var keyDownTimes = new Dictionary<string, double>();
         var clicks = new List<(double time, string? activeKey, double? keyDownTime)>();
         
         double? aStart = _keyStates.GetValueOrDefault("A") ? windowStartMs : null;
         double? dStart = _keyStates.GetValueOrDefault("D") ? windowStartMs : null;
         
-        // Process oldest first
         for (int i = events.Count - 1; i >= 0; i--)
         {
             var evt = events[i];
@@ -355,7 +354,6 @@ public partial class MainWindow : Window
             }
             else if (evt.Device == InputDeviceType.Mouse && evt.Type == InputEventType.Down)
             {
-                // Find which key is active at click time and its down time
                 string? activeKey = null;
                 double? activeKeyDownTime = null;
                 
@@ -366,7 +364,6 @@ public partial class MainWindow : Window
                 }
                 if (dStart.HasValue && keyDownTimes.TryGetValue("D", out double dDownTime))
                 {
-                    // If both keys held, use the most recently pressed one
                     if (activeKey == null || dDownTime > activeKeyDownTime)
                     {
                         activeKey = "D";
@@ -378,7 +375,6 @@ public partial class MainWindow : Window
             }
         }
         
-        // Close open segments
         if (aStart.HasValue) aSegments.Add((aStart.Value, nowMs));
         if (dStart.HasValue) dSegments.Add((dStart.Value, nowMs));
         
@@ -386,156 +382,127 @@ public partial class MainWindow : Window
         var dBrush = (SolidColorBrush)FindResource("DKeyBrush");
         var clickBrush = (SolidColorBrush)FindResource("ClickBrush");
         var gridBrush = (SolidColorBrush)FindResource("GridLineBrush");
+        var labelBg = new SolidColorBrush(Color.FromArgb(220, 30, 30, 45));
+        var dotBorder = new Pen(new SolidColorBrush(Color.FromRgb(60, 60, 80)), 1);
         
-        // Draw A lane bars and clicks
-        foreach (var seg in aSegments)
-        {
-            DrawBar(ALaneCanvas, seg.start, seg.end, aHeight, aBrush, aWidth, windowStartMs, windowDuration);
-        }
+        // Freeze brushes for performance
+        labelBg.Freeze();
+        dotBorder.Freeze();
         
-        // Draw D lane bars and clicks
-        foreach (var seg in dSegments)
-        {
-            DrawBar(DLaneCanvas, seg.start, seg.end, dHeight, dBrush, dWidth, windowStartMs, windowDuration);
-        }
+        // Render A lane
+        ALaneImage.Source = RenderLane(aWidth, aHeight, aSegments, aBrush, clicks, "A",
+            clickBrush, labelBg, dotBorder, windowStartMs, windowDuration);
         
-        // Draw clicks with labels
-        foreach (var (clickTime, activeKey, keyDownTime) in clicks)
-        {
-            double x = ((clickTime - windowStartMs) / windowDuration) * aWidth;
-            if (x < 0 || x > aWidth) continue;
-            
-            // Draw dot on appropriate lane
-            if (activeKey == "A")
-            {
-                DrawClickOnLane(ALaneCanvas, x, aHeight, clickBrush, clickTime, keyDownTime);
-            }
-            else if (activeKey == "D")
-            {
-                DrawClickOnLane(DLaneCanvas, x, dHeight, clickBrush, clickTime, keyDownTime);
-            }
-            else
-            {
-                // No active key - draw small dot on both lanes without label
-                DrawSmallDot(ALaneCanvas, x, aHeight, clickBrush);
-                DrawSmallDot(DLaneCanvas, x, dHeight, clickBrush);
-            }
-        }
+        // Render D lane
+        DLaneImage.Source = RenderLane(dWidth, dHeight, dSegments, dBrush, clicks, "D",
+            clickBrush, labelBg, dotBorder, windowStartMs, windowDuration);
         
-        // Draw time axis
-        DrawTimeAxis(axisWidth, windowStartMs, nowMs, gridBrush);
+        // Render time axis
+        TimeAxisImage.Source = RenderTimeAxis(axisWidth, axisHeight, windowStartMs, nowMs, gridBrush);
     }
 
-    private void DrawBar(Canvas canvas, double startMs, double endMs, double height, Brush brush,
-                         double canvasWidth, double windowStartMs, double windowDuration)
+    private RenderTargetBitmap RenderLane(double width, double height,
+        List<(double start, double end)> segments, Brush barBrush,
+        List<(double time, string? activeKey, double? keyDownTime)> clicks, string laneKey,
+        Brush clickBrush, Brush labelBg, Pen dotBorder,
+        double windowStartMs, double windowDuration)
     {
-        double x1 = ((startMs - windowStartMs) / windowDuration) * canvasWidth;
-        double x2 = ((endMs - windowStartMs) / windowDuration) * canvasWidth;
-        
-        x1 = Math.Max(0, x1);
-        x2 = Math.Min(canvasWidth, x2);
-        
-        if (x2 <= x1) return;
-        
-        var rect = new Rectangle
+        var dv = new DrawingVisual();
+        using (var dc = dv.RenderOpen())
         {
-            Width = x2 - x1,
-            Height = height - 4,
-            Fill = brush,
-            RadiusX = 4,
-            RadiusY = 4
-        };
-        
-        Canvas.SetLeft(rect, x1);
-        Canvas.SetTop(rect, 2);
-        canvas.Children.Add(rect);
-    }
-
-    private void DrawClickOnLane(Canvas canvas, double x, double height, Brush brush, double clickTime, double? keyDownTime)
-    {
-        // Draw dot - white fill with subtle dark border
-        var dot = new Ellipse
-        {
-            Width = 10,
-            Height = 10,
-            Fill = Brushes.White,
-            Stroke = new SolidColorBrush(Color.FromRgb(60, 60, 80)),
-            StrokeThickness = 1
-        };
-        Canvas.SetLeft(dot, x - 5);
-        Canvas.SetTop(dot, height / 2 - 5);
-        canvas.Children.Add(dot);
-        
-        // Draw timestamp label (time from key down)
-        if (keyDownTime.HasValue)
-        {
-            double deltaMs = clickTime - keyDownTime.Value;
-            string labelText = $"{deltaMs:0}ms";
-            
-            var label = new Border
+            // Draw bars - allow negative x for smooth slide-off
+            foreach (var (start, end) in segments)
             {
-                Background = new SolidColorBrush(Color.FromArgb(220, 30, 30, 45)),
-                CornerRadius = new CornerRadius(3),
-                Padding = new Thickness(5, 2, 5, 2),
-                Child = new TextBlock
+                double x1 = ((start - windowStartMs) / windowDuration) * width;
+                double x2 = ((end - windowStartMs) / windowDuration) * width;
+                
+                if (x2 <= 0 || x1 >= width) continue;
+                
+                dc.DrawRoundedRectangle(barBrush, null,
+                    new Rect(x1, 2, x2 - x1, height - 4), 4, 4);
+            }
+            
+            // Draw clicks on this lane
+            foreach (var (clickTime, activeKey, keyDownTime) in clicks)
+            {
+                double x = ((clickTime - windowStartMs) / windowDuration) * width;
+                if (x < 0 || x > width) continue;
+                
+                if (activeKey == laneKey)
                 {
-                    Text = labelText,
-                    Foreground = Brushes.White,
-                    FontSize = 11,
-                    FontFamily = new FontFamily("Segoe UI"),
-                    FontWeight = FontWeights.Medium
+                    // White dot
+                    dc.DrawEllipse(Brushes.White, dotBorder,
+                        new Point(x, height / 2), 5, 5);
+                    
+                    // Timestamp label
+                    if (keyDownTime.HasValue)
+                    {
+                        double deltaMs = clickTime - keyDownTime.Value;
+                        var text = new FormattedText(
+                            $"{deltaMs:0}ms",
+                            CultureInfo.InvariantCulture,
+                            FlowDirection.LeftToRight,
+                            new Typeface(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.Medium, FontStretches.Normal),
+                            11, Brushes.White, 1.0);
+                        
+                        double labelW = text.Width + 10;
+                        double labelH = text.Height + 4;
+                        double labelX = x - labelW / 2;
+                        labelX = Math.Max(2, Math.Min(width - labelW - 2, labelX));
+                        
+                        dc.DrawRoundedRectangle(labelBg, null,
+                            new Rect(labelX, 1, labelW, labelH), 3, 3);
+                        dc.DrawText(text, new Point(labelX + 5, 3));
+                    }
                 }
-            };
-            
-            label.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-            double labelX = x - label.DesiredSize.Width / 2;
-            labelX = Math.Max(2, Math.Min(canvas.ActualWidth - label.DesiredSize.Width - 2, labelX));
-            
-            Canvas.SetLeft(label, labelX);
-            Canvas.SetTop(label, 2);
-            canvas.Children.Add(label);
+                else if (activeKey == null)
+                {
+                    // Small faded dot
+                    dc.PushOpacity(0.5);
+                    dc.DrawEllipse(clickBrush, null,
+                        new Point(x, height / 2), 4, 4);
+                    dc.Pop();
+                }
+            }
         }
-    }
-
-    private void DrawSmallDot(Canvas canvas, double x, double height, Brush brush)
-    {
-        var dot = new Ellipse
-        {
-            Width = 8,
-            Height = 8,
-            Fill = brush,
-            Opacity = 0.5
-        };
-        Canvas.SetLeft(dot, x - 4);
-        Canvas.SetTop(dot, height / 2 - 4);
-        canvas.Children.Add(dot);
-    }
-
-    private void DrawTimeAxis(double width, double windowStartMs, double nowMs, Brush brush)
-    {
-        double windowDuration = nowMs - windowStartMs;
-        double secondsInWindow = windowDuration / 1000.0;
         
-        for (int i = 0; i <= (int)secondsInWindow; i++)
+        var bmp = new RenderTargetBitmap((int)width, (int)height, 96, 96, PixelFormats.Pbgra32);
+        bmp.Render(dv);
+        return bmp;
+    }
+
+    private RenderTargetBitmap RenderTimeAxis(double width, double height,
+        double windowStartMs, double nowMs, Brush brush)
+    {
+        var dv = new DrawingVisual();
+        double windowDuration = nowMs - windowStartMs;
+        
+        using (var dc = dv.RenderOpen())
         {
-            double timeMs = nowMs - (i * 1000);
-            double x = ((timeMs - windowStartMs) / windowDuration) * width;
-            
-            if (x < 0 || x > width) continue;
-            
-            var label = new TextBlock
+            for (int i = 0; i <= (int)(windowDuration / 1000.0); i++)
             {
-                Text = $"{i}s",
-                Foreground = brush,
-                FontSize = 10,
-                Opacity = 0.7
-            };
-            
-            label.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-            Canvas.SetLeft(label, x - label.DesiredSize.Width / 2);
-            Canvas.SetTop(label, 2);
-            TimeAxisCanvas.Children.Add(label);
+                double timeMs = nowMs - (i * 1000);
+                double x = ((timeMs - windowStartMs) / windowDuration) * width;
+                
+                if (x < 0 || x > width) continue;
+                
+                var text = new FormattedText(
+                    $"{i}s",
+                    CultureInfo.InvariantCulture,
+                    FlowDirection.LeftToRight,
+                    new Typeface("Segoe UI"),
+                    10, brush, 1.0);
+                
+                dc.PushOpacity(0.7);
+                dc.DrawText(text, new Point(x - text.Width / 2, 2));
+                dc.Pop();
+            }
         }
+        
+        int h = Math.Max(1, (int)height);
+        var bmp = new RenderTargetBitmap((int)width, h, 96, 96, PixelFormats.Pbgra32);
+        bmp.Render(dv);
+        return bmp;
     }
 }
 

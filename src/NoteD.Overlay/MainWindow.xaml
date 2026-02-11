@@ -98,21 +98,21 @@
             <TextBlock Grid.Row="0" Grid.Column="0" Text="A" Style="{StaticResource KeyLabelStyle}" Foreground="{StaticResource AKeyBrush}"/>
             <TextBlock Grid.Row="2" Grid.Column="0" Text="D" Style="{StaticResource KeyLabelStyle}" Foreground="{StaticResource DKeyBrush}"/>
             
-            <!-- A Lane Canvas -->
-            <Canvas x:Name="ALaneCanvas" 
-                    Grid.Row="0" Grid.Column="1" 
-                    Background="{StaticResource PanelBrush}"
-                    ClipToBounds="True"/>
+            <!-- A Lane -->
+            <Border Grid.Row="0" Grid.Column="1" Background="{StaticResource PanelBrush}" ClipToBounds="True">
+                <Image x:Name="ALaneImage" Stretch="None" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+            </Border>
             
-            <!-- D Lane Canvas -->
-            <Canvas x:Name="DLaneCanvas" 
-                    Grid.Row="2" Grid.Column="1" 
-                    Background="{StaticResource PanelBrush}"
-                    ClipToBounds="True"/>
+            <!-- D Lane -->
+            <Border Grid.Row="2" Grid.Column="1" Background="{StaticResource PanelBrush}" ClipToBounds="True">
+                <Image x:Name="DLaneImage" Stretch="None" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+            </Border>
         </Grid>
         
         <!-- Time Axis -->
-        <Canvas x:Name="TimeAxisCanvas" Grid.Row="3" Margin="30,0,5,0" ClipToBounds="True"/>
+        <Border Grid.Row="3" Margin="30,0,5,0" ClipToBounds="True">
+            <Image x:Name="TimeAxisImage" Stretch="None" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+        </Border>
         
         <!-- Status Bar -->
         <Border Grid.Row="4" Background="{StaticResource PanelBrush}">
