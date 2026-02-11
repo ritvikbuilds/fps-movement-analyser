@@ -35,7 +35,7 @@ public partial class MainWindow : Window
     private readonly Dictionary<string, bool> _keyStates = new();
     private readonly Dictionary<string, double> _keyDownTimes = new();
     
-    private const double TimelineSeconds = 3.0;
+    private const double TimelineSeconds = 5.0;
     
     private DeltaResult? _lastClickDelta;
     private double _lastClickTime;
